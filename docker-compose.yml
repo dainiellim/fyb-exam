@@ -16,31 +16,35 @@ services:
       - ./src/be-app:/app
       - /app/node_modules
       - ./src/be-app/.env:/app/.env
-  fe-app:
-    build: 
-      context: ./src/fe-app
-      dockerfile: Dockerfile
-    environment:
-      NODE_ENV: development
-    depends_on:
-      - be-app
-    ports:
-      - "3000:3000"
-    volumes:
-      - ./src/fe-app:/app
-      - /app/node_modules
-      - ./src/fe-app/.env:/app/.env
+    networks:
+      - local-network
+  # fe-app:
+  #   build: 
+  #     context: ./src/fe-app
+  #     dockerfile: Dockerfile
+  #   environment:
+  #     NODE_ENV: development
+  #   depends_on:
+  #     - be-app
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - ./src/fe-app:/app
+  #     - /app/node_modules
+  #     - ./src/fe-app/.env:/app/.env
   nginx:
     image: nginx:latest
     ports:
       - "80:80"
     depends_on:
       - be-app
-      - fe-app
     volumes:
       - ./config/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    networks:
+      - local-network
   postgres:
     image: postgres:14-alpine
+    container_name: postgres-local-database
     ports:
       - "5432:5432"
     environment:
@@ -49,5 +53,12 @@ services:
       POSTGRES_DB: sample_db
     volumes:
       - postgres-data:/var/lib/postgresql/data
+    networks:
+      - local-network
+
+networks:
+  local-network:
+    name: app-local-network
+    driver: bridge
 volumes:
   postgres-data:

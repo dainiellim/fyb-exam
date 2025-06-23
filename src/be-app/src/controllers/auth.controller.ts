@@ -1,20 +1,27 @@
-import { Controller, Get, Req, Post } from '@nestjs/common';
-import { Request } from 'express';
+import { Controller, Post, Body, HttpCode, UsePipes, ValidationPipe, UseInterceptors, ClassSerializerInterceptor } from '@nestjs/common';
+import { AuthService } from '../services/auth.service';
+import { RegisterDto } from '../dto/register.dto';
+import { LoginDto } from '../dto/login.dto';
 
 @Controller('auth')
 export class AuthController {
-    @Post('/login')
-    login(@Req() req: Request) {
-        return 'You are logged In';
-    }
+  constructor(
+    private readonly authService: AuthService,
+  ) {}
 
-    @Post('/register')
-    register(id: string) {
-        return 'You are registering';
-    }
+  @Post('/login')
+  @HttpCode(200)
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async login(@Body() loginDto: LoginDto) {
+    const token = await this.authService.login(loginDto);
+    return { message: 'Login successful', token: token};
+  }
 
-    @Get('/users/me')
-    getUser(id: string) {
-        return "Hi I'm  you!";
-    }
+  @UseInterceptors(ClassSerializerInterceptor)
+  @Post('/register')
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async register(@Body() registerDto: RegisterDto) {
+    const user = await this.authService.register(registerDto);
+    return { message: 'Registration successful', user};
+  }
 }
