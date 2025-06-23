@@ -13,7 +13,6 @@ services:
     ports:
       - "4000:4000"
     volumes:
-      - ./src/be-app:/app
       - /app/node_modules
       - ./src/be-app/.env:/app/.env
     networks:
