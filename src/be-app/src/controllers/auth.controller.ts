@@ -7,14 +7,14 @@ import { LoginDto } from '../dto/login.dto';
 export class AuthController {
   constructor(
     private readonly authService: AuthService,
-  ) {}
+  ) { }
 
   @Post('/login')
   @HttpCode(200)
   @UsePipes(new ValidationPipe({ transform: true }))
   async login(@Body() loginDto: LoginDto) {
     const token = await this.authService.login(loginDto);
-    return { message: 'Login successful', token: token};
+    return { message: 'Login successful', token: token };
   }
 
   @UseInterceptors(ClassSerializerInterceptor)
@@ -22,6 +22,6 @@ export class AuthController {
   @UsePipes(new ValidationPipe({ transform: true }))
   async register(@Body() registerDto: RegisterDto) {
     const user = await this.authService.register(registerDto);
-    return { message: 'Registration successful', user};
+    return { message: 'Registration successful', data: user };
   }
 }

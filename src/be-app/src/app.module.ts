@@ -10,21 +10,37 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthService } from './services/auth.service';
 import { UserController } from './controllers/user.controller';
 import { UserService } from './services/user.service';
+import { Product } from './entities/product.entity';
+import { ProductService } from './services/product.service';
+
+declare var process : {
+  env: {
+    DATABASE_TYPE: 'mysql' | 'mariadb' | 'mongodb' | 'postgres',
+    DATABASE_HOST: string,
+    DATABASE_PORT: number,
+    DATABASE_USERNAME: string,
+    DATABASE_PASSWORD: string,
+    DATABASE_NAME: string
+    DATABASE_SYNCHRONIZE: boolean,
+    JWT_SECRET: string,
+    JWT_EXPIRATION_TIME: string
+  }
+}
 
 @Module({
   imports: [
     ConfigModule.forRoot(),
     TypeOrmModule.forRoot({
-      type: 'postgres',
+      type: process.env.DATABASE_TYPE,
       host: process.env.DATABASE_HOST,
-      port: parseInt(process.env.DATABASE_PORT || '5432', 10),
+      port: process.env.DATABASE_PORT,
       username: process.env.DATABASE_USERNAME,
       password: process.env.DATABASE_PASSWORD,
       database: process.env.DATABASE_NAME,
-      entities: [User],
+      entities: [User, Product],
       synchronize: true,
     }),
-    TypeOrmModule.forFeature([User]),
+    TypeOrmModule.forFeature([User, Product]),
     JwtModule.register({
       global: true,
       secret: process.env.JWT_SECRET,
@@ -40,7 +56,8 @@ import { UserService } from './services/user.service';
   providers: [
     AppService,
     AuthService,
-    UserService
+    UserService,
+    ProductService
   ],
 })
 export class AppModule 
