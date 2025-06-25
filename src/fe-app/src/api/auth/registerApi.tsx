@@ -1,4 +1,5 @@
-import { ApiError } from '../ApiError';
+import { post } from '../apiHandler';
+import { apiError } from '../apiError';
 
 export interface RegisterRequest {
   first_name: string;
@@ -18,35 +19,18 @@ export interface RegisterResponse {
   };
 }
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost';
-
 export const registerApi = async (userData: RegisterRequest): Promise<RegisterResponse> => {
   try {
-    const response = await fetch(`${API_URL}/api/auth/register`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(userData)
+    const data = await post<RegisterResponse>({
+      url: '/api/auth/register',
+      payload: userData,
     });
-
-    const data = await response.json();
-
-    if (!response.ok) {
-      throw new ApiError(data.message || 'Registration failed', response.status);
-    }
-
-    return {
-      success: true,
-      message: data.message || 'Registration successful',
-      user: data.user,
-    };
+    return data;
   } catch (error) {
-    if (error instanceof ApiError) {
+    if (error instanceof apiError) {
       throw error;
     }
-    
-    throw new ApiError('An unexpected error occurred.', 500);
+    throw new apiError('An unexpected error occurred.', 500);
   }
 };
 

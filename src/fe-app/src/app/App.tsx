@@ -1,5 +1,4 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-
 import AuthPage from '../features/auth/AuthPage';
 import ProductPage from '../features/product/ProductPage';
 import './App.css'

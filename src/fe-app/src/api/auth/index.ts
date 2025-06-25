@@ -1,4 +1,3 @@
-// Export all types and functions from login API
 export {
   loginApi,
   isAuthenticated,
@@ -8,7 +7,6 @@ export {
   type LoginResponse,
 } from './loginApi';
 
-// Export all types and functions from register API
 export {
   registerApi,
   validateRegistrationData,
@@ -16,5 +14,3 @@ export {
   type RegisterResponse,
 } from './registerApi';
 
-// Re-export common types
-export type { ApiError } from './loginApi'; 

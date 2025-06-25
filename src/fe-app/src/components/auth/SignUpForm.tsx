@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { registerApi, loginApi, validateRegistrationData, type RegisterRequest } from '../../api/auth';
-import { ApiError } from '../../api/ApiError';
+import { apiError } from '../../api/apiError';
 import { useNavigate } from 'react-router-dom';
 
 interface SignUpFormProps {
@@ -43,7 +43,7 @@ const SignUpForm: React.FC<SignUpFormProps> = ({ onSuccess, onError }) => {
       navigate('/product');
       onSuccess(response.message);
     } catch (error) {
-      const apiError = error as ApiError;
+      const apiError = error as apiError;
       onError(apiError.message || 'An unexpected error occurred.');
     } finally {
       setLoading(false);

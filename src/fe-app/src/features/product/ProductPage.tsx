@@ -1,219 +1,244 @@
-import React, { useEffect, useReducer } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { fetchMe, type User } from '../../api/users/meApi';
-import { removeAuthToken } from '../../api/auth';
-import type { ApiError } from '../../api/ApiError';
+import { listProducts, createProduct, deleteProduct, updateProduct } from '../../api/product/productApi';
+import { removeAuthToken } from '../../api/auth/loginApi';
+import { useEffect, useState } from 'react';
+import { getAuthToken } from '../../api/auth/loginApi';
 import ProductList from '../../components/product/ProductList';
 import ProductForm from '../../components/product/ProductForm';
-import { MOCK_PRODUCTS, type Product } from './mockProducts';
 
-interface PageState {
-    products: Product[];
-    formOpen: boolean;
-    editingId: string | null;
-    formData: Omit<Product, 'id'>;
-    page: number;
-    total: number;
-    loading: boolean;
-    user: User | null;
-}
+type Product = {
+  id: string;
+  sku: string;
+  brand: string;
+  category: string | null;
+  name: string;
+  description: string;
+};
 
-type PageAction =
-    | { type: 'LOAD_DATA_START' }
-    | { type: 'LOAD_DATA_SUCCESS'; payload: { products: Product[]; total: number; user: User } }
-    | { type: 'LOAD_DATA_FAILURE'; payload: ApiError | any }
-    | { type: 'OPEN_FORM'; payload?: Product }
-    | { type: 'CLOSE_FORM' }
-    | { type: 'UPDATE_FORM_DATA'; payload: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement> }
-    | { type: 'SUBMIT_FORM_SUCCESS'; payload: Product[] }
-    | { type: 'DELETE_PRODUCT_SUCCESS'; payload: Product[] }
-    | { type: 'SET_PAGE'; payload: number };
-
-const emptyProduct: Omit<Product, 'id'> = {
+function ProductPage() {
+  const navigate = useNavigate();
+  const [user, setUser] = useState<User | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [formOpen, setFormOpen] = useState(false);
+  const [formData, setFormData] = useState({
     sku: '',
     brand: '',
     category: '',
     name: '',
     description: '',
-};
+  });
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
+  const [total, setTotal] = useState(0);
+  const limit = 10;
 
-const initialState: PageState = {
-    products: [],
-    formOpen: false,
-    editingId: null,
-    formData: emptyProduct,
-    page: 1,
-    total: 0,
-    loading: true,
-    user: null,
-};
-
-const pageReducer = (state: PageState, action: PageAction): PageState => {
-    switch (action.type) {
-        case 'LOAD_DATA_START':
-            return { ...state, loading: true };
-        case 'LOAD_DATA_SUCCESS':
-            return {
-                ...state,
-                loading: false,
-                user: action.payload.user,
-                products: action.payload.products,
-                total: action.payload.total,
-            };
-        case 'LOAD_DATA_FAILURE':
-            return { ...state, loading: false };
-        case 'OPEN_FORM':
-            return {
-                ...state,
-                formOpen: true,
-                editingId: action.payload?.id || null,
-                formData: action.payload
-                    ? {
-                        sku: action.payload.sku,
-                        brand: action.payload.brand,
-                        category: action.payload.category || '',
-                        name: action.payload.name,
-                        description: action.payload.description,
-                    }
-                    : emptyProduct,
-            };
-        case 'CLOSE_FORM':
-            return { ...state, formOpen: false, editingId: null, formData: emptyProduct };
-        case 'UPDATE_FORM_DATA':
-            return { ...state, formData: { ...state.formData, [action.payload.target.name]: action.payload.target.value } };
-        case 'SUBMIT_FORM_SUCCESS':
-            return { ...state, products: action.payload, total: action.payload.length, formOpen: false, editingId: null, formData: emptyProduct };
-        case 'DELETE_PRODUCT_SUCCESS':
-            return { ...state, products: action.payload, total: state.total - 1 };
-        case 'SET_PAGE':
-            return { ...state, page: action.payload };
-        default:
-            return state;
+  useEffect(() => {
+    const token = getAuthToken();
+    if (!token) {
+      navigate('/auth');
     }
-};
+  }, [navigate]);
 
-const ITEMS_PER_PAGE = 10;
+  useEffect(() => {
+    fetchMe()
+      .then(setUser)
+      .catch(() => setUser(null));
+  }, []);
 
-const ProductPage: React.FC = () => {
-    const [state, dispatch] = useReducer(pageReducer, initialState);
-    const navigate = useNavigate();
-
-    useEffect(() => {
-        const getPageData = async () => {
-            dispatch({ type: 'LOAD_DATA_START' });
-
-            // This is a mock API call
-            const fetchProducts = (page: number) => new Promise<{ data: Product[], total: number }>((resolve) => {
-                setTimeout(() => {
-                    const start = (page - 1) * ITEMS_PER_PAGE;
-                    const end = start + ITEMS_PER_PAGE;
-                    resolve({
-                        data: MOCK_PRODUCTS.slice(start, end),
-                        total: MOCK_PRODUCTS.length,
-                    });
-                }, 400);
-            });
-
-            try {
-                const [user, productData] = await Promise.all([fetchMe(), fetchProducts(state.page)]);
-                dispatch({ type: 'LOAD_DATA_SUCCESS', payload: { user, products: productData.data, total: productData.total } });
-            } catch (error: ApiError | any) {
-                console.error("Failed to load page data:", error);
-                if (error.status === 401) {
-                    navigate('/');
-                }
-                dispatch({ type: 'LOAD_DATA_FAILURE', payload: error });
-            }
-        };
-
-        getPageData();
-    }, [state.page, navigate]);
-
-    const handleEdit = (product: Product) => dispatch({ type: 'OPEN_FORM', payload: product });
-    const closeForm = () => dispatch({ type: 'CLOSE_FORM' });
-    const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => dispatch({ type: 'UPDATE_FORM_DATA', payload: e });
-
-    const handleDelete = (id: string) => {
-        // In a real app, you would make an API call to delete the product
-        const updatedProducts = state.products.filter(product => product.id !== id);
-        dispatch({ type: 'DELETE_PRODUCT_SUCCESS', payload: updatedProducts });
-    };
-
-    const handleFormSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        // In a real app, you would make an API call to create/update the product
-        let updatedProducts: Product[];
-        if (state.editingId === null) {
-            const newProduct: Product = { id: Math.random().toString(36).slice(2), ...state.formData };
-            updatedProducts = [newProduct, ...state.products];
+  useEffect(() => {
+    setLoading(true);
+    listProducts(page, limit)
+      .then(res => {
+        setProducts(res.data);
+        setTotal(res.total);
+        setError(null);
+      })
+      .catch(err => {
+        if (err && err.status === 401) {
+          navigate('/');
         } else {
-            updatedProducts = state.products.map(p => p.id === state.editingId ? { id: state.editingId, ...state.formData } : p);
+          setError(err.message || 'Failed to fetch products');
+          setProducts([]);
         }
-        dispatch({ type: 'SUBMIT_FORM_SUCCESS', payload: updatedProducts });
-    };
+      })
+      .finally(() => setLoading(false));
+  }, [navigate, page]);
 
-    const handleSignOut = () => {
-        removeAuthToken();
-        navigate('/auth');
-    };
+  console.log(products);
 
-    const formatUserName = (user: User | null) => {
-        if (!user) return '';
-        return [user.first_name, user.middle_name, user.last_name].filter(Boolean).join(' ');
-    };
+  const handleSignOut = () => {
+    removeAuthToken();
+    navigate('/auth');
+  };
 
-    const totalPages = Math.ceil(state.total / ITEMS_PER_PAGE);
+  const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
 
-    return (
-        <div className="min-h-screen flex flex-col items-center bg-gray-100 p-4">
-            <div className="w-full max-w-4xl bg-white p-8 rounded-lg shadow-xl text-gray-900 relative overflow-hidden">
-                <div className="flex justify-between items-start mb-6">
-                    <h1 className="text-2xl font-bold">Product List</h1>
-                    <div className="text-right">
-                        <p className="text-gray-600">
-                            Welcome, {state.loading ? '...' : formatUserName(state.user)}
-                        </p>
-                        <a href="/auth" onClick={(e) => { e.preventDefault(); handleSignOut(); }} className="text-sm text-gray-800">
-                            Sign Out
-                        </a>
-                    </div>
-                </div>
+  const handleEdit = (product: Product) => {
+    setEditingId(product.id);
+    setFormData({
+      sku: product.sku,
+      brand: product.brand,
+      category: product.category || '',
+      name: product.name,
+      description: product.description,
+    });
+    setFormOpen(true);
+  };
 
-                {state.loading ? (
-                    <div className="text-center py-8 text-gray-400">Loading...</div>
-                ) : (
-                    <ProductList
-                        products={state.products}
-                        handleEdit={handleEdit}
-                        handleDelete={handleDelete}
-                    />
-                )}
+  const handleFormSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      if (editingId) {
+        await updateProduct(editingId, formData);
+      } else {
+        await createProduct(formData);
+      }
+      setFormOpen(false);
+      setEditingId(null);
+      setFormData({ sku: '', brand: '', category: '', name: '', description: '' });
+      setLoading(true);
+      listProducts(page, limit)
+        .then(res => {
+          setProducts(res.data);
+          setTotal(res.total);
+          setError(null);
+        })
+        .catch(err => {
+          if (err && err.status === 401) {
+            navigate('/');
+          } else {
+            setError(err.message || 'Failed to fetch products');
+            setProducts([]);
+          }
+        })
+        .finally(() => setLoading(false));
+    } catch (err: any) {
+      if (err && err.status === 401) {
+        navigate('/');
+      } else {
+        setError(err.message || 'Failed to save product');
+      }
+    }
+  };
 
-                <div className="flex justify-between items-center mt-6">
-                    <button onClick={() => dispatch({ type: 'SET_PAGE', payload: state.page - 1 })} disabled={state.page === 1} className="px-4 py-2 bg-gray-800 text-white rounded disabled:opacity-50">
-                        Previous
-                    </button>
-                    <span className="text-gray-700">Page {state.page} of {totalPages}</span>
-                    <button onClick={() => dispatch({ type: 'SET_PAGE', payload: state.page + 1 })} disabled={state.page === totalPages || state.products.length < ITEMS_PER_PAGE} className="px-4 py-2 bg-gray-800 text-white rounded disabled:opacity-50">
-                        Next
-                    </button>
-                </div>
+  const closeForm = () => {
+    setFormOpen(false);
+    setEditingId(null);
+    setFormData({ sku: '', brand: '', category: '', name: '', description: '' });
+  };
 
-                <button onClick={() => dispatch({ type: 'OPEN_FORM' })} className="w-full mt-8 bg-black hover:bg-gray-800 text-white font-bold py-2 px-4 rounded-md shadow-md transition-all duration-300">
-                    Add Product
-                </button>
+  const handleDelete = async (id: string) => {
+    try {
+      await deleteProduct(id);
+      setLoading(true);
+      listProducts(page, limit)
+        .then(res => {
+          setProducts(res.data);
+          setTotal(res.total);
+          setError(null);
+        })
+        .catch(err => {
+          if (err && err.status === 401) {
+            navigate('/');
+          } else {
+            console.log(err);
+            setError(err.message || 'Failed to fetch products');
+            setProducts([]);
+          }
+        })
+        .finally(() => setLoading(false));
+    } catch (err: any) {
+      if (err && err.status === 401) {
+        navigate('/');
+      } else {
+        console.log(err);
+        setError(err.message || 'Failed to delete product');
+      }
+    }
+  };
 
-                <ProductForm
-                    formOpen={state.formOpen}
-                    editingId={state.editingId}
-                    formData={state.formData}
-                    handleFormChange={handleFormChange}
-                    handleFormSubmit={handleFormSubmit}
-                    closeForm={closeForm}
-                />
-            </div>
+  return (
+    <div className="min-h-screen flex flex-col items-center bg-gray-100 p-4">
+      <div className="w-full max-w-4xl bg-white p-8 rounded-lg shadow-xl text-gray-900 relative overflow-hidden">
+        <div className="flex justify-between items-start mb-6">
+          <h1 className="text-2xl font-bold">Product Page</h1>
+          <div className="text-right">
+            <p className="text-gray-600">
+              Welcome, {user ? [user.first_name, user.middle_name, user.last_name].filter(Boolean).join(' ') : '...'}
+            </p>
+            <a
+              href="/auth"
+              onClick={e => {
+                e.preventDefault();
+                handleSignOut();
+              }}
+              className="text-sm text-blue-600 hover:text-blue-800"
+            >
+              Sign Out
+            </a>
+          </div>
         </div>
-    );
-};
+        {error && (
+          <div className="mb-4 p-3 bg-red-100 text-red-700 rounded">
+            {error}
+          </div>
+        )}
+        {loading ? (
+          <div className="text-center text-gray-500">Loading products...</div>
+        ) : (
+          <div>
+            {products.length === 0 ? (
+              <div className="text-center text-gray-500">No products found.</div>
+            ) : (
+              <ProductList
+                products={products}
+                handleEdit={handleEdit}
+                handleDelete={handleDelete}
+              />
+            )}
+            <div className="flex justify-center mt-6 gap-2">
+              <button
+                className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+                onClick={() => setPage(page - 1)}
+                disabled={page === 1}
+              >
+                Previous
+              </button>
+              <span className="px-3 py-1">Page {page} of {Math.ceil(total / limit) || 1}</span>
+              <button
+                className="px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-50"
+                onClick={() => setPage(page + 1)}
+                disabled={page >= Math.ceil(total / limit)}
+              >
+                Next
+              </button>
+            </div>
+            <div className="flex justify-end mt-6">
+              <button
+                className="bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md"
+                onClick={() => setFormOpen(true)}
+              >
+                Create Product
+              </button>
+            </div>
+          </div>
+        )}
+        <ProductForm
+          formOpen={formOpen}
+          editingId={editingId}
+          formData={formData}
+          handleFormChange={handleFormChange}
+          handleFormSubmit={handleFormSubmit}
+          closeForm={closeForm}
+        />
+      </div>
+    </div>
+  );
+}
 
-export default ProductPage; 
+export default ProductPage;

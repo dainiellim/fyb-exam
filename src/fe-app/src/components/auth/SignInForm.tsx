@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { loginApi } from '../../api/auth';
-import type { ApiError } from '../../api/auth';
+import type { apiError } from '../../api/apiError';
 import { useNavigate } from 'react-router-dom';
 
 interface SignInFormProps {
@@ -27,7 +27,7 @@ const SignInForm: React.FC<SignInFormProps> = ({ onSuccess, onError }) => {
       onSuccess(response.message);
       navigate('/product');
     } catch (error) {
-      const apiError = error as ApiError;
+      const apiError = error as apiError;
       if (apiError.status === 401) {
         onError('Invalid credentials.');
       } else {

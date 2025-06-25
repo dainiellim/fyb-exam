@@ -24,6 +24,7 @@ const ProductList: React.FC<ProductListProps> = ({ products, handleEdit, handleD
                         <th className="w-1/12 text-left py-3 px-4 uppercase font-semibold text-sm">SKU</th>
                         <th className="w-1/12 text-left py-3 px-4 uppercase font-semibold text-sm">Brand</th>
                         <th className="w-2/12 text-left py-3 px-4 uppercase font-semibold text-sm">Name</th>
+                        <th className="w-2/12 text-left py-3 px-4 uppercase font-semibold text-sm">Category</th>
                         <th className="w-4/12 text-left py-3 px-4 uppercase font-semibold text-sm">Description</th>
                         <th className="w-2/12 text-center py-3 px-4 uppercase font-semibold text-sm">Actions</th>
                     </tr>
@@ -34,6 +35,7 @@ const ProductList: React.FC<ProductListProps> = ({ products, handleEdit, handleD
                             <td className="w-1/12 py-3 px-4">{product.sku}</td>
                             <td className="w-1/12 py-3 px-4">{product.brand}</td>
                             <td className="w-2/12 py-3 px-4">{product.name}</td>
+                            <td className="w-2/12 py-3 px-4">{product.category}</td>
                             <td className="w-4/12 py-3 px-4">{product.description}</td>
                             <td className="w-2/12 py-3 px-4 text-center">
                                 <div className="flex justify-center items-center">

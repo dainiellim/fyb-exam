@@ -1,6 +1,5 @@
 import React from 'react';
 
-// Assuming Product type is defined in a shared types file or passed down
 interface Product {
     id: string;
     sku: string;
@@ -104,12 +103,21 @@ const ProductForm: React.FC<ProductFormProps> = ({
                     >
                         Cancel
                     </button>
-                    <button
+                    {editingId === null ? (
+                      <button
                         type="submit"
                         className="w-1/2 bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded-md"
-                    >
-                        Save
-                    </button>
+                      >
+                        Create
+                      </button>
+                    ) : (
+                      <button
+                        type="submit"
+                        className="w-1/2 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-md"
+                      >
+                        Update
+                      </button>
+                    )}
                 </div>
             </form>
         </div>

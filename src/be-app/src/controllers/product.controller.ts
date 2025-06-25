@@ -1,4 +1,4 @@
-import { Controller, Delete, Get, Put, Post, Body, Param, UsePipes, ValidationPipe, HttpCode, UseGuards } from '@nestjs/common';
+import { Controller, Delete, Get, Put, Post, Body, Param, UsePipes, ValidationPipe, HttpCode, UseGuards, Query } from '@nestjs/common';
 import { CreateProductDto } from 'src/dto/create-product.dto';
 import { PaginateDto } from 'src/dto/paginate.dto';
 import { UpdateProductDto } from 'src/dto/update-product.dto';
@@ -22,7 +22,7 @@ export class ProductController {
   @Get()
   @UsePipes(new ValidationPipe({ transform: true }))
   @UseGuards(AuthGuard)
-  async findAll(@Body() paginateDto: PaginateDto) {
+  async findAll(@Query() paginateDto: PaginateDto) {
     const product = await this.productService.findAllByPage(paginateDto.page, paginateDto.limit);
     return { data: product[0], total: product[1], page: paginateDto.page ?? 1 };
   }
